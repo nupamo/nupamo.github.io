@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ExternalLink,
-  Zap,
   Search,
+  Globe,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
@@ -11,7 +11,7 @@ import ReactMarkdown from 'react-markdown';
 interface PostMetadata {
   title: string;
   date: string;
-  category: 'project' | 'event' | 'photo';
+  category: 'project' | 'photo';
   tags?: string[];
   description?: string;
   link?: string;
@@ -23,6 +23,39 @@ interface Post extends PostMetadata {
   id: string;
   content: string;
 }
+
+// --- Translations ---
+const translations = {
+  ko: {
+    description: "VRChat과 관련된 개인 기록과 프로젝트를 정리합니다. ✨",
+    all: "전체",
+    project: "프로젝트",
+    photo: "포토",
+    search: "검색...",
+    viewDetail: "상세 보기",
+    footer: "© 2026 nupamo. Built with React & Pamomo. ✨",
+  },
+  en: {
+    description: "Organizing personal records and projects related to VRChat. ✨",
+    all: "All",
+    project: "Project",
+    photo: "Photo",
+    search: "Search...",
+    viewDetail: "View Detail",
+    footer: "© 2026 nupamo. Built with React & Pamomo. ✨",
+  },
+  jp: {
+    description: "VRChatに関連する個人の記録とプロジェクトを整理しています。 ✨",
+    all: "全部",
+    project: "プロジェクト",
+    photo: "フォト",
+    search: "検索...",
+    viewDetail: "詳細を見る",
+    footer: "© 2026 nupamo. Built with React & Pamomo. ✨",
+  }
+};
+
+type Language = keyof typeof translations;
 
 // --- Utils ---
 const parseMarkdown = (filename: string, raw: string): Post => {
@@ -55,9 +88,17 @@ const parseMarkdown = (filename: string, raw: string): Post => {
 // --- Components ---
 export default function App() {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [activeTab, setActiveTab] = useState<'all' | 'project' | 'event' | 'photo'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'project' | 'photo'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [lang, setLang] = useState<Language>(() => {
+    const browserLang = navigator.language.split('-')[0];
+    if (browserLang === 'ko') return 'ko';
+    if (browserLang === 'ja') return 'jp';
+    return 'en';
+  });
+
+  const t = translations[lang];
 
   useEffect(() => {
     // Vite's magic to import all md files in src/content
@@ -86,7 +127,27 @@ export default function App() {
   }, [posts, activeTab, searchQuery]);
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12 md:py-20">
+    <div className="max-w-4xl mx-auto px-6 py-12 md:py-20 relative">
+      {/* --- Language Switcher --- */}
+      <div className="fixed top-6 right-6 z-40">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-1 bg-surface/80 backdrop-blur-md p-1 rounded-full border border-white/10 shadow-2xl"
+        >
+          {(['ko', 'en', 'jp'] as const).map((l) => (
+            <button
+              key={l}
+              onClick={() => setLang(l)}
+              className={`px-3 py-1 rounded-full text-[10px] font-black transition-all ${lang === l ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              {l.toUpperCase()}
+            </button>
+          ))}
+          <div className="mx-1 text-slate-500"><Globe size={12} /></div>
+        </motion.div>
+      </div>
+
       {/* --- Profile Section --- */}
       <header className="flex flex-col md:flex-row items-center gap-8 mb-16 md:mb-24">
         <motion.div
@@ -96,13 +157,10 @@ export default function App() {
         >
           <div className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-primary/20 p-1 bg-surface">
             <img
-              src="./avatar.jpg"
+              src="/profile.jpg"
               alt="Profile"
               className="w-full h-full object-cover rounded-full"
             />
-          </div>
-          <div className="absolute -bottom-2 -right-2 bg-primary text-white p-2 rounded-full shadow-lg">
-            <Zap size={20} />
           </div>
         </motion.div>
 
@@ -114,14 +172,14 @@ export default function App() {
           >
             nupamo
           </motion.h1>
+
           <motion.p
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="text-slate-400 max-w-md leading-relaxed mb-6"
+            className="text-slate-400 leading-relaxed mb-6"
           >
-            가상과 현실을 오가며 가치를 만드는 개발자입니다.<br />
-            VRChat 프로젝트와 다양한 기술적 도전을 기록합니다. ✨
+            {t.description}
           </motion.p>
           <motion.div
             initial={{ y: 20, opacity: 0 }}
@@ -129,8 +187,11 @@ export default function App() {
             transition={{ delay: 0.2 }}
             className="flex justify-center md:justify-start gap-4"
           >
-            <a href="https://vrchat.com/home/user/usr_28e1d6c3-1c0e-4366-9e66-6b6c671d1822" target="_blank" className="flex items-center gap-2 px-4 py-2 rounded-full glass hover:bg-white/10 transition-all text-sm font-bold text-slate-300">
-              VRChat
+            {/* <a href="https://github.com/nupamo" target="_blank" className="flex items-center gap-2 px-4 py-2 rounded-full glass hover:bg-white/10 transition-all text-sm font-bold text-slate-300">
+              <ExternalLink size={16} /> GitHub
+            </a> */}
+            <a href="https://x.com/nupamo" target="_blank" className="flex items-center gap-2 px-4 py-2 rounded-full glass hover:bg-white/10 transition-all text-sm font-bold text-slate-300">
+              <ExternalLink size={16} /> Twitter
             </a>
           </motion.div>
         </div>
@@ -140,16 +201,14 @@ export default function App() {
       <section className="mb-12">
         <div className="flex flex-col md:flex-row gap-6 justify-between items-center mb-8">
           <div className="flex bg-surface/50 p-1 rounded-2xl glass w-full md:w-auto">
-            {(['all', 'project', 'event', 'photo'] as const).map(tab => (
+            {(['all', 'project', 'photo'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-sm font-black transition-all capitalize ${activeTab === tab ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-300'
                   }`}
               >
-                {tab === 'all' ? '전체' :
-                  tab === 'project' ? '프로젝트' :
-                    tab === 'event' ? '이벤트' : '포토'}
+                {t[tab]}
               </button>
             ))}
           </div>
@@ -158,7 +217,7 @@ export default function App() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
             <input
               type="text"
-              placeholder="검색..."
+              placeholder={t.search}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-surface/50 border border-white/5 rounded-2xl py-3 pl-12 pr-4 focus:outline-none focus:border-primary/50 transition-all text-sm"
@@ -173,11 +232,23 @@ export default function App() {
               <motion.div
                 key={post.id}
                 layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                onClick={() => setSelectedPost(post)}
-                className="group glass rounded-3xl overflow-hidden cursor-pointer hover:border-primary/30 transition-all flex flex-col h-full"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{
+                  duration: 0.4,
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 30
+                }}
+                onClick={() => {
+                  if (post.link) {
+                    window.open(post.link, '_blank', 'noopener,noreferrer');
+                  } else {
+                    setSelectedPost(post);
+                  }
+                }}
+                className="group glass rounded-3xl overflow-hidden cursor-pointer hover:border-primary/30 transition-colors flex flex-col h-full"
               >
                 {post.category === 'photo' && post.image ? (
                   <div className="aspect-[4/3] overflow-hidden">
@@ -192,10 +263,9 @@ export default function App() {
                 <div className="p-6 flex flex-col flex-1">
                   <div className="flex justify-between items-start mb-4">
                     <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${post.category === 'project' ? 'bg-blue-500/10 text-blue-400' :
-                      post.category === 'event' ? 'bg-emerald-500/10 text-emerald-400' :
-                        'bg-purple-500/10 text-purple-400'
+                      'bg-purple-500/10 text-purple-400'
                       }`}>
-                      {post.category}
+                      {t[post.category]}
                     </span>
                     <span className="text-[10px] text-slate-600 font-mono">{post.date}</span>
                   </div>
@@ -217,7 +287,7 @@ export default function App() {
 
       {/* --- Footer --- */}
       <footer className="mt-24 pt-12 border-t border-white/5 text-center">
-        <p className="text-slate-600 text-xs font-mono">© 2026 nupamo. Built with React & Pamomo. ✨</p>
+        <p className="text-slate-600 text-xs font-mono">{t.footer}</p>
       </footer>
 
       {/* --- Detail Modal --- */}
@@ -251,7 +321,7 @@ export default function App() {
 
               <div className="p-8 md:p-12">
                 <div className="flex items-center gap-3 mb-6">
-                  <span className="text-primary font-black uppercase tracking-[0.2em] text-[10px]">{selectedPost.category}</span>
+                  <span className="text-primary font-black uppercase tracking-[0.2em] text-[10px]">{t[selectedPost.category]}</span>
                   <div className="w-1 h-1 bg-slate-700 rounded-full" />
                   <span className="text-slate-500 font-mono text-[10px]">{selectedPost.date}</span>
                 </div>
@@ -275,7 +345,7 @@ export default function App() {
                       target="_blank"
                       className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-2xl font-black text-sm hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/30"
                     >
-                      상세 보기 <ExternalLink size={16} />
+                      {t.viewDetail} <ExternalLink size={16} />
                     </a>
                   )}
                 </div>

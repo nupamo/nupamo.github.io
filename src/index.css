@@ -6,7 +6,7 @@
   --color-primary: #3b82f6;
   --color-secondary: #60a5fa;
   --color-accent: #22d3ee;
-  --font-sans: "Inter", "system-ui", "sans-serif";
+  --font-sans: "Noto Sans", "Noto Sans KR", "Noto Sans JP", sans-serif;
 }
 
 :root {
