@@ -235,7 +235,7 @@ export default function App() {
                     <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${post.category === 'project' ? 'bg-blue-500/10 text-blue-400' :
                       'bg-purple-500/10 text-purple-400'
                       }`}>
-                      {t[post.category]}
+                      {post.category}
                     </span>
                     <span className="text-[10px] text-slate-600 font-mono">{post.date}</span>
                   </div>
@@ -291,7 +291,7 @@ export default function App() {
 
               <div className="p-8 md:p-12">
                 <div className="flex items-center gap-3 mb-6">
-                  <span className="text-primary font-black uppercase tracking-[0.2em] text-[10px]">{t[selectedPost.category]}</span>
+                  <span className="text-primary font-black uppercase tracking-[0.2em] text-[10px]">{selectedPost.category}</span>
                   <div className="w-1 h-1 bg-slate-700 rounded-full" />
                   <span className="text-slate-500 font-mono text-[10px]">{selectedPost.date}</span>
                 </div>
