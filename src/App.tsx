@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ExternalLink,
   Search,
-  Globe,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
@@ -28,27 +27,18 @@ interface Post extends PostMetadata {
 const translations = {
   ko: {
     description: "VRChat과 관련된 개인 기록과 프로젝트를 정리합니다. ✨",
-    all: "전체",
-    project: "프로젝트",
-    photo: "포토",
     search: "검색...",
     viewDetail: "상세 보기",
     footer: "© 2026 nupamo. Built with React & Pamomo. ✨",
   },
   en: {
     description: "Organizing personal records and projects related to VRChat. ✨",
-    all: "All",
-    project: "Project",
-    photo: "Photo",
     search: "Search...",
     viewDetail: "View Detail",
     footer: "© 2026 nupamo. Built with React & Pamomo. ✨",
   },
   jp: {
     description: "VRChatに関連する個人の記録とプロジェクトを整理しています。 ✨",
-    all: "全部",
-    project: "プロジェクト",
-    photo: "フォト",
     search: "検索...",
     viewDetail: "詳細を見る",
     footer: "© 2026 nupamo. Built with React & Pamomo. ✨",
@@ -91,7 +81,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'all' | 'project' | 'photo'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [lang, setLang] = useState<Language>(() => {
+  const [lang] = useState<Language>(() => {
     const browserLang = navigator.language.split('-')[0];
     if (browserLang === 'ko') return 'ko';
     if (browserLang === 'ja') return 'jp';
@@ -128,26 +118,6 @@ export default function App() {
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-12 md:py-20 relative">
-      {/* --- Language Switcher --- */}
-      <div className="fixed top-6 right-6 z-40">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-1 bg-surface/80 backdrop-blur-md p-1 rounded-full border border-white/10 shadow-2xl"
-        >
-          {(['ko', 'en', 'jp'] as const).map((l) => (
-            <button
-              key={l}
-              onClick={() => setLang(l)}
-              className={`px-3 py-1 rounded-full text-[10px] font-black transition-all ${lang === l ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
-            >
-              {l.toUpperCase()}
-            </button>
-          ))}
-          <div className="mx-1 text-slate-500"><Globe size={12} /></div>
-        </motion.div>
-      </div>
-
       {/* --- Profile Section --- */}
       <header className="flex flex-col md:flex-row items-center gap-8 mb-16 md:mb-24">
         <motion.div
@@ -205,10 +175,10 @@ export default function App() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex-1 md:flex-none px-6 py-2 rounded-xl text-sm font-black transition-all capitalize ${activeTab === tab ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-300'
+                className={`flex-1 md:flex-none px-6 cursor-pointer py-2 rounded-xl text-sm font-black transition-all capitalize ${activeTab === tab ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-300'
                   }`}
               >
-                {t[tab]}
+                {tab}
               </button>
             ))}
           </div>
