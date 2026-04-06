@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ExternalLink,
   Search,
+  ArrowLeft,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { Routes, Route, useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 
 // --- Types ---
 interface PostMetadata {
@@ -16,6 +18,7 @@ interface PostMetadata {
   link?: string;
   thumbnail?: string;
   image?: string;
+  draft?: string | boolean;
 }
 
 interface Post extends PostMetadata {
@@ -30,18 +33,21 @@ const translations = {
     search: "검색...",
     viewDetail: "상세 보기",
     footer: "© 2026 nupamo. Built with React & Pamomo. ✨",
+    back: "뒤로 가기"
   },
   en: {
     description: "Organizing personal records and projects related to VRChat. ✨",
     search: "Search...",
     viewDetail: "View Detail",
     footer: "© 2026 nupamo. Built with React & Pamomo. ✨",
+    back: "Back"
   },
   jp: {
     description: "VRChatに関連する個人の記録とプロジェクトを整理しています。 ✨",
     search: "検索...",
     viewDetail: "詳細を見る",
     footer: "© 2026 nupamo. Built with React & Pamomo. ✨",
+    back: "戻る"
   }
 };
 
@@ -76,49 +82,41 @@ const parseMarkdown = (filename: string, raw: string): Post => {
 };
 
 // --- Components ---
-export default function App() {
-  const [posts, setPosts] = useState<Post[]>([]);
+
+function HomePage({ posts, t }: { posts: Post[], t: any }) {
   const [activeTab, setActiveTab] = useState<'all' | 'project' | 'photo'>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [lang] = useState<Language>(() => {
-    const browserLang = navigator.language.split('-')[0];
-    if (browserLang === 'ko') return 'ko';
-    if (browserLang === 'ja') return 'jp';
-    return 'en';
-  });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchQuery = searchParams.get('search') || '';
+  const navigate = useNavigate();
 
-  const t = translations[lang];
-
-  useEffect(() => {
-    // Vite's magic to import all md files in src/content
-    const modules = import.meta.glob('./content/*.md', { query: '?raw', import: 'default' });
-
-    const loadPosts = async () => {
-      const loadedPosts: Post[] = [];
-      for (const path in modules) {
-        const rawContent = await modules[path]() as string;
-        loadedPosts.push(parseMarkdown(path, rawContent));
-      }
-      // Sort by date descending
-      setPosts(loadedPosts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    };
-
-    loadPosts();
-  }, []);
+  const handleSearchChange = (val: string) => {
+    if (val) {
+      setSearchParams({ search: val });
+    } else {
+      setSearchParams({});
+    }
+  };
 
   const filteredPosts = useMemo(() => {
+    const searchLower = searchQuery.toLowerCase();
     return posts.filter(post => {
       const matchesTab = activeTab === 'all' || post.category === activeTab;
-      const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesSearch = post.title.toLowerCase().includes(searchLower) ||
+        post.tags?.some(tag => {
+          const tagLower = tag.toLowerCase();
+          return tagLower.includes(searchLower) || `#${tagLower}`.includes(searchLower);
+        });
       return matchesTab && matchesSearch;
     });
   }, [posts, activeTab, searchQuery]);
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12 md:py-20 relative">
-      {/* --- Profile Section --- */}
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="max-w-4xl mx-auto px-6 py-12 md:py-20"
+    >
       <header className="flex flex-col md:flex-row items-center gap-8 mb-16 md:mb-24">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
@@ -157,17 +155,13 @@ export default function App() {
             transition={{ delay: 0.2 }}
             className="flex justify-center md:justify-start gap-4"
           >
-            {/* <a href="https://github.com/nupamo" target="_blank" className="flex items-center gap-2 px-4 py-2 rounded-full glass hover:bg-white/10 transition-all text-sm font-bold text-slate-300">
-              <ExternalLink size={16} /> GitHub
-            </a> */}
-            <a href="https://x.com/nupamo" target="_blank" className="flex items-center gap-2 px-4 py-2 rounded-full glass hover:bg-white/10 transition-all text-sm font-bold text-slate-300">
+            <a href="https://x.com/nupamo" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 rounded-full glass hover:bg-white/10 transition-all text-sm font-bold text-slate-300">
               <ExternalLink size={16} /> Twitter
             </a>
           </motion.div>
         </div>
       </header>
 
-      {/* --- Filter & Search --- */}
       <section className="mb-12">
         <div className="flex flex-col md:flex-row gap-6 justify-between items-center mb-8">
           <div className="flex bg-surface/50 p-1 rounded-2xl glass w-full md:w-auto">
@@ -189,13 +183,12 @@ export default function App() {
               type="text"
               placeholder={t.search}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full bg-surface/50 border border-white/5 rounded-2xl py-3 pl-12 pr-4 focus:outline-none focus:border-primary/50 transition-all text-sm"
             />
           </div>
         </div>
 
-        {/* --- List Section --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <AnimatePresence mode="popLayout">
             {filteredPosts.map((post) => (
@@ -215,18 +208,18 @@ export default function App() {
                   if (post.link) {
                     window.open(post.link, '_blank', 'noopener,noreferrer');
                   } else {
-                    setSelectedPost(post);
+                    navigate(`/post/${post.id}`);
                   }
                 }}
                 className="group glass rounded-3xl overflow-hidden cursor-pointer hover:border-primary/30 transition-colors flex flex-col h-full"
               >
                 {post.category === 'photo' && post.image ? (
                   <div className="aspect-[4/3] overflow-hidden">
-                    <img src={post.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    <img src={post.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={post.title} />
                   </div>
                 ) : post.thumbnail ? (
                   <div className="aspect-video overflow-hidden">
-                    <img src={post.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    <img src={post.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={post.title} />
                   </div>
                 ) : null}
 
@@ -255,81 +248,164 @@ export default function App() {
         </div>
       </section>
 
-      {/* --- Footer --- */}
       <footer className="mt-24 pt-12 border-t border-white/5 text-center">
         <p className="text-slate-600 text-xs font-mono">{t.footer}</p>
       </footer>
+    </motion.div>
+  );
+}
 
-      {/* --- Detail Modal --- */}
-      <AnimatePresence>
-        {selectedPost && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedPost(null)}
-              className="absolute inset-0 bg-black/90 backdrop-blur-sm"
+function PostDetailPage({ posts, t }: { posts: Post[], t: any }) {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const post = posts.find(p => p.id === id);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  if (!post) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="min-h-screen bg-background pb-20"
+    >
+      <nav className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-white/5 px-6 py-4 mb-12">
+        <div className="max-w-3xl mx-auto flex justify-between items-center">
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center cursor-pointer gap-2 text-slate-400 hover:text-white transition-colors group"
+          >
+            <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+            <span className="font-medium text-sm">{t.back}</span>
+          </button>
+          <div className="flex items-center gap-3">
+            <img 
+              src="/profile.jpg" 
+              alt="nupamo profile" 
+              className="w-8 h-8 rounded-full object-cover border border-white/10" 
             />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-slate-900 w-full max-w-2xl rounded-[2.5rem] border border-white/10 overflow-hidden relative z-10 max-h-[90vh] overflow-y-auto shadow-2xl"
-            >
-              {selectedPost.image ? (
-                <div className="w-full h-64 md:h-80 overflow-hidden">
-                  <img src={selectedPost.image} className="w-full h-full object-cover" />
-                </div>
-              ) : selectedPost.thumbnail ? (
-                <div className="w-full h-64 overflow-hidden border-b border-white/5">
-                  <img src={selectedPost.thumbnail} className="w-full h-full object-cover" />
-                </div>
-              ) : (
-                <div className="h-24 blue-gradient opacity-20" />
-              )}
-
-              <div className="p-8 md:p-12">
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="text-primary font-black uppercase tracking-[0.2em] text-[10px]">{selectedPost.category}</span>
-                  <div className="w-1 h-1 bg-slate-700 rounded-full" />
-                  <span className="text-slate-500 font-mono text-[10px]">{selectedPost.date}</span>
-                </div>
-
-                <h2 className="text-3xl md:text-4xl font-black mb-8 leading-tight text-white">{selectedPost.title}</h2>
-
-                <div className="prose prose-invert max-w-none mb-10 text-slate-300 leading-relaxed">
-                  <ReactMarkdown>{selectedPost.content}</ReactMarkdown>
-                </div>
-
-                <div className="flex flex-col md:flex-row justify-between items-center gap-6 pt-8 border-t border-white/5">
-                  <div className="flex flex-wrap gap-2">
-                    {selectedPost.tags?.map(tag => (
-                      <span key={tag} className="text-xs text-primary/70 bg-primary/10 px-3 py-1 rounded-full border border-primary/20">#{tag}</span>
-                    ))}
-                  </div>
-
-                  {selectedPost.link && (
-                    <a
-                      href={selectedPost.link}
-                      target="_blank"
-                      className="flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-2xl font-black text-sm hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/30"
-                    >
-                      {t.viewDetail} <ExternalLink size={16} />
-                    </a>
-                  )}
-                </div>
-              </div>
-
-              <button
-                onClick={() => setSelectedPost(null)}
-                className="absolute top-6 right-6 w-10 h-10 rounded-full glass flex items-center justify-center text-white hover:bg-white/10 transition-colors"
-              >
-                ✕
-              </button>
-            </motion.div>
+            <div className="text-sm font-bold tracking-tight text-slate-300">
+              nupamo
+            </div>
           </div>
+        </div>
+      </nav>
+
+      <article className="max-w-3xl mx-auto px-6">
+        <header className="mb-10 lg:mb-14">
+          <div className="flex items-center gap-3 mb-6 mix-blend-plus-lighter">
+            <span className="text-primary font-bold uppercase tracking-wider text-xs">{post.category}</span>
+            <span className="text-slate-600">•</span>
+            <span className="text-slate-500 font-mono text-xs">{post.date}</span>
+          </div>
+
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black mb-8 leading-tight tracking-tight text-slate-100">
+            {post.title}
+          </h1>
+          <div className="w-full border-t border-white/5 mb-10"></div>
+        </header>
+
+        {(post.image || post.thumbnail) && (
+          <figure className="mb-14 -mx-6 md:mx-0">
+            <img
+              src={post.image || post.thumbnail}
+              alt={post.title}
+              className="w-full aspect-[2/1] md:aspect-[21/9] object-cover md:rounded-2xl shadow-xl shadow-black/20"
+            />
+          </figure>
         )}
+
+        <div className="prose prose-invert prose-lg md:prose-xl prose-slate max-w-none mb-16 
+          prose-headings:font-bold prose-headings:tracking-tight prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+          prose-img:rounded-xl prose-img:shadow-lg">
+          <ReactMarkdown>{post.content}</ReactMarkdown>
+        </div>
+
+        <footer className="pt-10 border-t border-white/5">
+          <div className="flex flex-wrap gap-2 mb-10">
+            {post.tags?.map(tag => (
+              <button 
+                key={tag} 
+                onClick={() => navigate(`/?search=${encodeURIComponent('#' + tag)}`)}
+                className="text-sm text-slate-400 bg-surface px-4 py-2 rounded-full hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                #{tag}
+              </button>
+            ))}
+          </div>
+
+          {post.link && (
+            <div className="flex justify-center mb-16">
+              <a
+                href={post.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-slate-800 text-white hover:bg-primary hover:text-white px-8 py-4 rounded-full font-bold transition-all shadow-lg shadow-black/20"
+              >
+                {t.viewDetail} <ExternalLink size={18} />
+              </a>
+            </div>
+          )}
+        </footer>
+      </article>
+
+      <div className="max-w-3xl mx-auto px-6 text-center mt-20">
+        <p className="text-slate-600 text-xs font-mono">{t.footer}</p>
+      </div>
+    </motion.div>
+  );
+}
+
+
+export default function App() {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const location = useLocation();
+  const [lang] = useState<Language>(() => {
+    const browserLang = navigator.language.split('-')[0];
+    if (browserLang === 'ko') return 'ko';
+    if (browserLang === 'ja') return 'jp';
+    return 'en';
+  });
+
+  const t = translations[lang];
+
+  useEffect(() => {
+    const modules = import.meta.glob('./content/*.md', { query: '?raw', import: 'default' });
+
+    const loadPosts = async () => {
+      const loadedPosts: Post[] = [];
+      const now = new Date().getTime();
+
+      for (const path in modules) {
+        const rawContent = await modules[path]() as string;
+        const post = parseMarkdown(path, rawContent);
+        
+        // Skip drafts
+        if (post.draft === 'true' || post.draft === true) continue;
+        
+        // Skip future dates
+        const postDate = new Date(post.date).getTime();
+        if (postDate > now) continue;
+
+        loadedPosts.push(post);
+      }
+      setPosts(loadedPosts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    };
+
+    loadPosts();
+  }, []);
+
+  return (
+    <div className="relative min-h-screen">
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route path="/" element={<HomePage posts={posts} t={t} />} />
+          <Route path="/post/:id" element={<PostDetailPage posts={posts} t={t} />} />
+        </Routes>
       </AnimatePresence>
     </div>
   );
