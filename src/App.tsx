@@ -4,6 +4,7 @@ import {
   ExternalLink,
   Search,
   ArrowLeft,
+  X,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Routes, Route, useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
@@ -48,15 +49,30 @@ const translations = {
     viewDetail: "詳細を見る",
     footer: "© 2026 nupamo. Built with React & Pamomo. ✨",
     back: "戻る"
+  },
+  zh: {
+    description: "整理与 VRChat 相关的个人记录和项目。 ✨",
+    search: "搜索...",
+    viewDetail: "查看详情",
+    footer: "© 2026 nupamo. Built with React & Pamomo. ✨",
+    back: "返回"
   }
 };
 
 type Language = keyof typeof translations;
 
 // --- Utils ---
-const parseMarkdown = (filename: string, raw: string): Post => {
+const parseMarkdown = (filename: string, raw: string): Post & { baseId: string; postLang: string } => {
+  const name = filename.split('/').pop()?.replace('.md', '') || filename;
+  const parts = name.split('.');
+  const lastPart = parts[parts.length - 1];
+  const isTranslation = ['ko', 'en', 'jp', 'zh'].includes(lastPart);
+
+  const postLang = isTranslation ? lastPart : 'ko';
+  const baseId = isTranslation ? parts.slice(0, -1).join('.') : name;
+
   const match = raw.match(/^---([\s\S]*?)---([\s\S]*)$/);
-  if (!match) return { id: filename, title: filename, date: '', category: 'project', content: raw };
+  if (!match) return { id: baseId, baseId, postLang, title: baseId, date: '', category: 'project', content: raw };
 
   const frontmatter = match[1];
   const content = match[2].trim();
@@ -75,7 +91,9 @@ const parseMarkdown = (filename: string, raw: string): Post => {
   });
 
   return {
-    id: filename.split('/').pop()?.replace('.md', '') || filename,
+    id: baseId,
+    baseId,
+    postLang,
     ...metadata,
     content
   };
@@ -85,6 +103,17 @@ const parseMarkdown = (filename: string, raw: string): Post => {
 
 function HomePage({ posts, t }: { posts: Post[], t: any }) {
   const [activeTab, setActiveTab] = useState<'all' | 'project' | 'photo'>('all');
+  const [selectedPhoto, setSelectedPhoto] = useState<Post | null>(null);
+
+  useEffect(() => {
+    if (selectedPhoto) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [selectedPhoto]);
+
   const [searchParams, setSearchParams] = useSearchParams();
   const searchQuery = searchParams.get('search') || '';
   const navigate = useNavigate();
@@ -205,7 +234,9 @@ function HomePage({ posts, t }: { posts: Post[], t: any }) {
                   damping: 30
                 }}
                 onClick={() => {
-                  if (post.link) {
+                  if (post.category === 'photo') {
+                    setSelectedPhoto(post);
+                  } else if (post.link) {
                     window.open(post.link, '_blank', 'noopener,noreferrer');
                   } else {
                     navigate(`/post/${post.id}`);
@@ -251,6 +282,57 @@ function HomePage({ posts, t }: { posts: Post[], t: any }) {
       <footer className="mt-24 pt-12 border-t border-white/5 text-center">
         <p className="text-slate-600 text-xs font-mono">{t.footer}</p>
       </footer>
+
+      <AnimatePresence>
+        {selectedPhoto && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedPhoto(null)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative max-w-6xl w-full flex flex-col items-center justify-center"
+            >
+              <button
+                onClick={() => setSelectedPhoto(null)}
+                className="absolute -top-12 md:-top-16 right-0 text-white/50 hover:text-white p-2 transition-colors z-50 cursor-pointer"
+              >
+                <X size={32} />
+              </button>
+
+              <div className="relative group w-full flex justify-center">
+                <img
+                  src={selectedPhoto.image || selectedPhoto.thumbnail}
+                  alt={selectedPhoto.title}
+                  className="max-w-full max-h-[70vh] object-contain rounded-xl shadow-2xl"
+                />
+              </div>
+
+              <div className="mt-6 text-center bg-black/50 backdrop-blur-sm p-4 rounded-2xl">
+                <h3 className="text-2xl font-bold text-white mb-2">{selectedPhoto.title}</h3>
+                {selectedPhoto.description && (
+                  <p className="text-slate-300 text-sm md:text-base max-w-2xl mx-auto">{selectedPhoto.description}</p>
+                )}
+                {selectedPhoto.tags && selectedPhoto.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 justify-center mt-4">
+                    {selectedPhoto.tags.map(tag => (
+                      <span key={tag} className="text-xs text-slate-400 bg-white/10 px-3 py-1 rounded-full">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -259,10 +341,20 @@ function PostDetailPage({ posts, t }: { posts: Post[], t: any }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const post = posts.find(p => p.id === id);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  useEffect(() => {
+    if (selectedImage) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [selectedImage]);
 
   if (!post) return null;
 
@@ -283,10 +375,10 @@ function PostDetailPage({ posts, t }: { posts: Post[], t: any }) {
             <span className="font-medium text-sm">{t.back}</span>
           </button>
           <div className="flex items-center gap-3">
-            <img 
-              src="/profile.jpg" 
-              alt="nupamo profile" 
-              className="w-8 h-8 rounded-full object-cover border border-white/10" 
+            <img
+              src="/profile.jpg"
+              alt="nupamo profile"
+              className="w-8 h-8 rounded-full object-cover border border-white/10"
             />
             <div className="text-sm font-bold tracking-tight text-slate-300">
               nupamo
@@ -314,7 +406,8 @@ function PostDetailPage({ posts, t }: { posts: Post[], t: any }) {
             <img
               src={post.image || post.thumbnail}
               alt={post.title}
-              className="w-full aspect-[2/1] md:aspect-[21/9] object-cover md:rounded-2xl shadow-xl shadow-black/20"
+              onClick={() => setSelectedImage(post.image || post.thumbnail || null)}
+              className="w-full object-cover md:rounded-2xl shadow-xl shadow-black/20 cursor-pointer hover:opacity-95 transition-opacity"
             />
           </figure>
         )}
@@ -322,14 +415,26 @@ function PostDetailPage({ posts, t }: { posts: Post[], t: any }) {
         <div className="prose prose-invert prose-lg md:prose-xl prose-slate max-w-none mb-16 
           prose-headings:font-bold prose-headings:tracking-tight prose-a:text-primary prose-a:no-underline hover:prose-a:underline
           prose-img:rounded-xl prose-img:shadow-lg">
-          <ReactMarkdown>{post.content}</ReactMarkdown>
+          <ReactMarkdown
+            components={{
+              img: ({ node, ...props }) => (
+                <img 
+                  {...props} 
+                  onClick={() => setSelectedImage(props.src || null)}
+                  className="rounded-xl shadow-lg cursor-pointer hover:opacity-90 transition-opacity m-0"
+                />
+              )
+            }}
+          >
+            {post.content}
+          </ReactMarkdown>
         </div>
 
         <footer className="pt-10 border-t border-white/5">
           <div className="flex flex-wrap gap-2 mb-10">
             {post.tags?.map(tag => (
-              <button 
-                key={tag} 
+              <button
+                key={tag}
                 onClick={() => navigate(`/?search=${encodeURIComponent('#' + tag)}`)}
                 className="text-sm text-slate-400 bg-surface px-4 py-2 rounded-full hover:bg-white/5 transition-colors cursor-pointer"
               >
@@ -356,6 +461,40 @@ function PostDetailPage({ posts, t }: { posts: Post[], t: any }) {
       <div className="max-w-3xl mx-auto px-6 text-center mt-20">
         <p className="text-slate-600 text-xs font-mono">{t.footer}</p>
       </div>
+
+      <AnimatePresence>
+        {selectedImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSelectedImage(null)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md cursor-pointer"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative flex flex-col items-center cursor-default"
+            >
+              <div className="relative inline-block max-w-[95vw] sm:max-w-6xl">
+                <button
+                  onClick={() => setSelectedImage(null)}
+                  className="absolute -right-4 -top-4 md:-right-6 md:-top-6 text-white/80 bg-black/60 hover:bg-black/90 p-2 rounded-full transition-colors z-50 cursor-pointer backdrop-blur-sm"
+                >
+                  <X size={24} />
+                </button>
+                <img
+                  src={selectedImage}
+                  alt="Expanded view"
+                  className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -368,6 +507,7 @@ export default function App() {
     const browserLang = navigator.language.split('-')[0];
     if (browserLang === 'ko') return 'ko';
     if (browserLang === 'ja') return 'jp';
+    if (browserLang === 'zh') return 'zh';
     return 'en';
   });
 
@@ -377,27 +517,35 @@ export default function App() {
     const modules = import.meta.glob('./content/*.md', { query: '?raw', import: 'default' });
 
     const loadPosts = async () => {
-      const loadedPosts: Post[] = [];
+      const postDict: Record<string, Record<string, Post>> = {};
       const now = new Date().getTime();
 
       for (const path in modules) {
         const rawContent = await modules[path]() as string;
         const post = parseMarkdown(path, rawContent);
-        
+
         // Skip drafts
         if (post.draft === 'true' || post.draft === true) continue;
-        
+
         // Skip future dates
         const postDate = new Date(post.date).getTime();
         if (postDate > now) continue;
 
-        loadedPosts.push(post);
+        if (!postDict[post.baseId]) {
+          postDict[post.baseId] = {};
+        }
+        postDict[post.baseId][post.postLang] = post;
       }
+
+      const loadedPosts = Object.values(postDict).map(group => {
+        return group[lang] || group['ko'] || Object.values(group)[0];
+      });
+
       setPosts(loadedPosts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     };
 
     loadPosts();
-  }, []);
+  }, [lang]);
 
   return (
     <div className="relative min-h-screen">
