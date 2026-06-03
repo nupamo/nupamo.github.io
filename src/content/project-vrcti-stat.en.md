@@ -27,7 +27,7 @@ Back in 2018, Japanese users were wandering around looking for companions, but t
 - **S** : Projects their real-life ego onto their avatar and communicates sincerely.
 - **C** : Enjoys life in the virtual world by creating character backstories and personas.
 
-80% of all respondents showed a Sync tendency. I expected there might be differences by country, but it wasn't that big. (So the conclusion is 1 in 5 people is a concept roleplayer?!)
+80% of all respondents showed a Sync tendency. I expected there might be differences by country, but it wasn't that big.
 
 ### Deep / Gamer
 
@@ -39,14 +39,16 @@ Since these types received the most questions asking "what's the criteria?", I'l
 
 ```md
 # D
+
 - Things that happen in VRChat sometimes interfere with my real life.
 - I don't think people I rarely see need to stay on my friend list.
 - When someone touches me, it feels like I can actually feel it.
 - If my VR equipment is being repaired, I wouldn't bother logging in.
 
 # G
+
 - I am not embarrassed if real-life acquaintances watch me play VRChat.
-- I enjoy the commotions in public worlds, seeing them as a 'spectacle'.
+- I enjoy the commotions in public worlds, seeing them as a "spectacle".
 - If I'm already chatting with my favorite friends on Discord, I don't feel the need to log into VRChat.
 - I prefer exploring worlds over staring at the mirror and chatting.
 ```
