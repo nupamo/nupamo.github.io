@@ -1,9 +1,9 @@
 ---
-title: "VRCTI統計"
-date: "2026-04-09"
-category: "project"
+title: 'VRCTI統計'
+date: '2026-04-09'
+category: 'Article'
 tags: [Article]
-thumbnail: "/vrcti-1.png"
+thumbnail: '/vrcti-1.png'
 ---
 
 VRCTIは、何も考えずに「面白そう！」と思って作ったWebサービスです。

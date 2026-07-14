@@ -5,6 +5,8 @@ import {
   Search,
   ArrowLeft,
   X,
+  LayoutGrid,
+  Table2,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Routes, Route, useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
@@ -81,7 +83,7 @@ const parseMarkdown = (filename: string, raw: string): Post & { baseId: string; 
   frontmatter.split('\n').forEach(line => {
     const [key, ...values] = line.split(':');
     if (key && values.length > 0) {
-      const val = values.join(':').trim().replace(/^"(.*)"$/, '$1');
+      const val = values.join(':').trim().replace(/^(['"])(.*)\1$/, '$2');
       if (key.trim() === 'tags') {
         metadata[key.trim()] = val.replace(/[\[\]]/g, '').split(',').map(t => t.trim());
       } else {
@@ -103,6 +105,7 @@ const parseMarkdown = (filename: string, raw: string): Post & { baseId: string; 
 
 function HomePage({ posts, t }: { posts: Post[], t: any }) {
   const [activeTab, setActiveTab] = useState<'all' | 'project' | 'photo'>('all');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [selectedPhoto, setSelectedPhoto] = useState<Post | null>(null);
 
   useEffect(() => {
@@ -138,6 +141,16 @@ function HomePage({ posts, t }: { posts: Post[], t: any }) {
       return matchesTab && matchesSearch;
     });
   }, [posts, activeTab, searchQuery]);
+
+  const handlePostClick = (post: Post) => {
+    if (post.category === 'photo') {
+      setSelectedPhoto(post);
+    } else if (post.link) {
+      window.open(post.link, '_blank', 'noopener,noreferrer');
+    } else {
+      navigate(`/post/${post.id}`);
+    }
+  };
 
   return (
     <motion.div
@@ -184,8 +197,17 @@ function HomePage({ posts, t }: { posts: Post[], t: any }) {
             transition={{ delay: 0.2 }}
             className="flex justify-center md:justify-start gap-4"
           >
-            <a href="https://x.com/nupamo" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 rounded-full glass hover:bg-white/10 transition-all text-sm font-bold text-slate-300">
-              <ExternalLink size={16} /> Twitter
+            <a href="https://x.com/nupamo" target="_blank" rel="noopener noreferrer" aria-label="X" title="X" className="inline-flex text-slate-400 hover:text-white transition-colors">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817-5.963 6.817H1.684l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+            </a>
+            <a href="https://nupamo.booth.pm/" target="_blank" rel="noopener noreferrer" aria-label="Booth" title="Booth" className="inline-flex text-slate-400 hover:text-white transition-colors">
+              <img
+                src="https://booth.pm/favicon.ico"
+                alt=""
+                className="w-4 h-4 rounded-sm"
+              />
             </a>
           </motion.div>
         </div>
@@ -193,17 +215,29 @@ function HomePage({ posts, t }: { posts: Post[], t: any }) {
 
       <section className="mb-12">
         <div className="flex flex-col md:flex-row gap-6 justify-between items-center mb-8">
-          <div className="flex bg-surface/50 p-1 rounded-2xl glass w-full md:w-auto">
-            {(['all', 'project', 'photo'] as const).map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`flex-1 md:flex-none px-6 cursor-pointer py-2 rounded-xl text-sm font-black transition-all capitalize ${activeTab === tab ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-300'
-                  }`}
-              >
-                {tab}
-              </button>
-            ))}
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <button
+              type="button"
+              onClick={() => setViewMode(viewMode === 'grid' ? 'table' : 'grid')}
+              aria-label={viewMode === 'grid' ? 'Switch to table view' : 'Switch to grid view'}
+              title={viewMode === 'grid' ? 'Table view' : 'Grid view'}
+              className="shrink-0 flex items-center justify-center gap-2 px-3 py-2 rounded-2xl glass text-slate-400 hover:text-white hover:border-primary/30 transition-colors cursor-pointer"
+            >
+              {viewMode === 'grid' ? <Table2 size={18} /> : <LayoutGrid size={18} />}
+            </button>
+
+            <div className="flex-1 sm:flex-none flex bg-surface/50 p-1 rounded-2xl glass w-full sm:w-auto">
+              {(['all', 'project', 'photo'] as const).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex-1 sm:flex-none px-6 cursor-pointer py-2 rounded-xl text-sm font-black transition-all capitalize ${activeTab === tab ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="relative w-full md:w-64">
@@ -218,65 +252,120 @@ function HomePage({ posts, t }: { posts: Post[], t: any }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <AnimatePresence mode="popLayout">
-            {filteredPosts.map((post) => (
-              <motion.div
-                key={post.id}
-                layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{
-                  duration: 0.4,
-                  type: "spring",
-                  stiffness: 300,
-                  damping: 30
-                }}
-                onClick={() => {
-                  if (post.category === 'photo') {
-                    setSelectedPhoto(post);
-                  } else if (post.link) {
-                    window.open(post.link, '_blank', 'noopener,noreferrer');
-                  } else {
-                    navigate(`/post/${post.id}`);
-                  }
-                }}
-                className="group glass rounded-3xl overflow-hidden cursor-pointer hover:border-primary/30 transition-colors flex flex-col h-full"
-              >
-                {post.category === 'photo' && post.image ? (
-                  <div className="aspect-[4/3] overflow-hidden">
-                    <img src={post.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={post.title} />
-                  </div>
-                ) : post.thumbnail ? (
-                  <div className="aspect-video overflow-hidden">
-                    <img src={post.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={post.title} />
-                  </div>
-                ) : null}
+        {viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <AnimatePresence mode="popLayout">
+              {filteredPosts.map((post) => (
+                <motion.div
+                  key={post.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{
+                    duration: 0.4,
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 30
+                  }}
+                  onClick={() => handlePostClick(post)}
+                  className="group glass rounded-3xl overflow-hidden cursor-pointer hover:border-primary/30 transition-colors flex flex-col h-full"
+                >
+                  {post.category === 'photo' && post.image ? (
+                    <div className="aspect-[4/3] overflow-hidden">
+                      <img src={post.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={post.title} />
+                    </div>
+                  ) : post.thumbnail ? (
+                    <div className="aspect-video overflow-hidden">
+                      <img src={post.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={post.title} />
+                    </div>
+                  ) : null}
 
-                <div className="p-6 flex flex-col flex-1">
-                  <div className="flex justify-between items-start mb-4">
-                    <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${post.category === 'project' ? 'bg-blue-500/10 text-blue-400' :
-                      'bg-purple-500/10 text-purple-400'
-                      }`}>
-                      {post.category}
-                    </span>
-                    <span className="text-[10px] text-slate-600 font-mono">{post.date}</span>
+                  <div className="p-6 flex flex-col flex-1">
+                    <div className="flex justify-between items-start mb-4">
+                      <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${post.category === 'project' ? 'bg-blue-500/10 text-blue-400' :
+                        'bg-purple-500/10 text-purple-400'
+                        }`}>
+                        {post.category}
+                      </span>
+                      <span className="text-[10px] text-slate-600 font-mono">{post.date}</span>
+                    </div>
+
+                    <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-1">{post.title}</h3>
+                    <p className="text-slate-500 text-sm leading-relaxed mb-6 line-clamp-2">{post.description}</p>
+
+                    <div className="mt-auto flex flex-wrap gap-2">
+                      {post.tags?.slice(0, 3).map(tag => (
+                        <span key={tag} className="text-[10px] text-slate-600 bg-white/5 px-2 py-1 rounded-md italic">#{tag}</span>
+                      ))}
+                    </div>
                   </div>
-
-                  <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-1">{post.title}</h3>
-                  <p className="text-slate-500 text-sm leading-relaxed mb-6 line-clamp-2">{post.description}</p>
-
-                  <div className="mt-auto flex flex-wrap gap-2">
-                    {post.tags?.slice(0, 3).map(tag => (
-                      <span key={tag} className="text-[10px] text-slate-600 bg-white/5 px-2 py-1 rounded-md italic">#{tag}</span>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        ) : (
+          <div className="glass rounded-3xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[680px] text-left">
+                <thead className="border-b border-white/5 bg-white/[0.02]">
+                  <tr className="text-[10px] uppercase tracking-widest text-slate-500">
+                    <th className="px-4 py-4 font-black">Date</th>
+                    <th className="px-4 py-4 font-black">Thumbnail</th>
+                    <th className="px-4 py-4 font-black">Name</th>
+                    <th className="px-4 py-4 font-black">Category</th>
+                    <th className="px-4 py-4 font-black">Tags</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  <AnimatePresence mode="popLayout">
+                    {filteredPosts.map((post) => (
+                      <motion.tr
+                        key={post.id}
+                        layout
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => handlePostClick(post)}
+                        className="group cursor-pointer transition-colors hover:bg-white/[0.04]"
+                      >
+                        <td className="px-4 py-3 text-xs text-slate-500 font-mono whitespace-nowrap">{post.date}</td>
+                        <td className="px-4 py-3">
+                          <div className="w-20 h-12 rounded-xl overflow-hidden bg-white/5">
+                            {(post.image || post.thumbnail) && (
+                              <img
+                                src={post.image || post.thumbnail}
+                                alt=""
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="font-bold text-slate-200 group-hover:text-primary transition-colors">{post.title}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${post.category === 'project' ? 'bg-blue-500/10 text-blue-400' :
+                            'bg-purple-500/10 text-purple-400'
+                            }`}>
+                            {post.category}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-1.5">
+                            {post.tags?.map(tag => (
+                              <span key={tag} className="text-[10px] text-slate-400 bg-white/5 px-2 py-1 rounded-md">#{tag}</span>
+                            ))}
+                          </div>
+                        </td>
+                      </motion.tr>
                     ))}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
+                  </AnimatePresence>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </section>
 
       <footer className="mt-24 pt-12 border-t border-white/5 text-center">
