@@ -1,9 +1,9 @@
 ---
-title: "VRCTI 통계"
-date: "2026-04-09"
-category: "project"
+title: 'VRCTI 통계'
+date: '2026-04-09'
+category: 'Article'
 tags: [Article]
-thumbnail: "/vrcti-1.png"
+thumbnail: '/vrcti-1.png'
 ---
 
 VRCTI는 별 생각없이 그냥 재미있겠다! 싶어서 만든 웹서비스입니다.  

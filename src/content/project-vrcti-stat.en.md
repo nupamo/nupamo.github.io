@@ -1,9 +1,9 @@
 ---
-title: "VRCTI Statistics"
-date: "2026-04-09"
-category: "project"
+title: 'VRCTI Statistics'
+date: '2026-04-09'
+category: 'Article'
 tags: [Article]
-thumbnail: "/vrcti-1.png"
+thumbnail: '/vrcti-1.png'
 ---
 
 VRCTI is a web service I made just thinking, "This would be fun!"
