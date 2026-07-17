@@ -101,6 +101,13 @@ const parseMarkdown = (filename: string, raw: string): Post & { baseId: string; 
   };
 };
 
+const contentModules = import.meta.glob<string>('./content/*.md', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+});
+const contentLoadTime = Date.now();
+
 // --- Components ---
 
 function HomePage({ posts, t }: { posts: Post[], t: any }) {
@@ -590,7 +597,6 @@ function PostDetailPage({ posts, t }: { posts: Post[], t: any }) {
 
 
 export default function App() {
-  const [posts, setPosts] = useState<Post[]>([]);
   const location = useLocation();
   const [lang] = useState<Language>(() => {
     const browserLang = navigator.language.split('-')[0];
@@ -602,38 +608,28 @@ export default function App() {
 
   const t = translations[lang];
 
-  useEffect(() => {
-    const modules = import.meta.glob('./content/*.md', { query: '?raw', import: 'default' });
+  const posts = useMemo(() => {
+    const postDict: Record<string, Record<string, Post>> = {};
 
-    const loadPosts = async () => {
-      const postDict: Record<string, Record<string, Post>> = {};
-      const now = new Date().getTime();
+    Object.entries(contentModules).forEach(([path, rawContent]) => {
+      const post = parseMarkdown(path, rawContent);
 
-      for (const path in modules) {
-        const rawContent = await modules[path]() as string;
-        const post = parseMarkdown(path, rawContent);
+      // Skip drafts
+      if (post.draft === 'true' || post.draft === true) return;
 
-        // Skip drafts
-        if (post.draft === 'true' || post.draft === true) continue;
+      // Skip future dates
+      const postDate = new Date(post.date).getTime();
+      if (postDate > contentLoadTime) return;
 
-        // Skip future dates
-        const postDate = new Date(post.date).getTime();
-        if (postDate > now) continue;
-
-        if (!postDict[post.baseId]) {
-          postDict[post.baseId] = {};
-        }
-        postDict[post.baseId][post.postLang] = post;
+      if (!postDict[post.baseId]) {
+        postDict[post.baseId] = {};
       }
+      postDict[post.baseId][post.postLang] = post;
+    });
 
-      const loadedPosts = Object.values(postDict).map(group => {
-        return group[lang] || group['ko'] || Object.values(group)[0];
-      });
-
-      setPosts(loadedPosts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    };
-
-    loadPosts();
+    return Object.values(postDict)
+      .map(group => group[lang] || group.ko || Object.values(group)[0])
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [lang]);
 
   return (
