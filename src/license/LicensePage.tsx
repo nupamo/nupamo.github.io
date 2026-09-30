@@ -53,11 +53,6 @@ export default function LicensePage() {
           <p className="license-description">{content.description}</p>
         </div>
 
-        <section className="license-introduction" aria-labelledby="why-title">
-          <h2 id="why-title">{content.introductionTitle}</h2>
-          {content.introduction.map(paragraph => <p key={paragraph}>{paragraph}</p>)}
-        </section>
-
         <section className="license-free" aria-labelledby="free-title">
           <div className="license-section-heading"><h2 id="free-title">{content.freeTitle}</h2><span className="license-mit-badge">MIT</span></div>
           <p>{content.freeDescription}</p>

@@ -21,9 +21,6 @@
 .license-hero h1 { font-size: clamp(38px, 6vw, 56px); line-height: 1.2; letter-spacing: -.04em; font-weight: 750; color: #f8fafc; }
 .license-description { color: #94a3b8; margin-top: 18px; font-size: 17px; }
 .license-page h2 { color: #f1f5f9; font-size: 21px; font-weight: 650; letter-spacing: -.025em; line-height: 1.5; }
-.license-introduction { padding-bottom: 36px; }
-.license-introduction h2 { margin-bottom: 20px; }
-.license-introduction p { color: #cbd5e1; margin-top: 14px; }
 .license-free { background: #12141c; border: 1px solid #ffffff0d; border-radius: 16px; padding: 26px 30px; }
 .license-section-heading { display: flex; gap: 12px; align-items: center; }
 .license-mit-badge { font-family: monospace; font-size: 11px; line-height: 1.7; letter-spacing: .05em; padding: 3px 9px; color: #bfdbfe; background: #3b82f618; border-radius: 6px; }
@@ -51,7 +48,6 @@
   .license-languages button { padding: 7px 9px; }
   .license-hero { padding: 42px 0 32px; }
   .license-description { font-size: 15px; }
-  .license-introduction p { font-size: 14px; }
   .license-free, .license-rules { padding: 22px 20px; }
   .license-paid { margin-top: 36px; }
   .license-footer { margin-top: 42px; }
