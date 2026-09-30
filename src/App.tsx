@@ -36,28 +36,32 @@ const translations = {
     search: "검색...",
     viewDetail: "상세 보기",
     footer: "© 2026 nupamo. Built with React & Pamomo. ✨",
-    back: "뒤로 가기"
+    back: "뒤로 가기",
+    license: "라이선스"
   },
   en: {
     description: "Organizing personal records and projects related to VRChat. ✨",
     search: "Search...",
     viewDetail: "View Detail",
     footer: "© 2026 nupamo. Built with React & Pamomo. ✨",
-    back: "Back"
+    back: "Back",
+    license: "License"
   },
   jp: {
     description: "VRChatに関連する個人の記録とプロジェクトを整理しています。 ✨",
     search: "検索...",
     viewDetail: "詳細を見る",
     footer: "© 2026 nupamo. Built with React & Pamomo. ✨",
-    back: "戻る"
+    back: "戻る",
+    license: "ライセンス"
   },
   zh: {
     description: "整理与 VRChat 相关的个人记录和项目。 ✨",
     search: "搜索...",
     viewDetail: "查看详情",
     footer: "© 2026 nupamo. Built with React & Pamomo. ✨",
-    back: "返回"
+    back: "返回",
+    license: "许可协议"
   }
 };
 
@@ -376,6 +380,7 @@ function HomePage({ posts, t }: { posts: Post[], t: any }) {
       </section>
 
       <footer className="mt-24 pt-12 border-t border-white/5 text-center">
+        <a href="/license/" className="inline-block mb-4 text-slate-400 hover:text-white text-sm transition-colors">{t.license}</a>
         <p className="text-slate-600 text-xs font-mono">{t.footer}</p>
       </footer>
 
@@ -555,6 +560,7 @@ function PostDetailPage({ posts, t }: { posts: Post[], t: any }) {
       </article>
 
       <div className="max-w-3xl mx-auto px-6 text-center mt-20">
+        <a href="/license/" className="inline-block mb-4 text-slate-400 hover:text-white text-sm transition-colors">{t.license}</a>
         <p className="text-slate-600 text-xs font-mono">{t.footer}</p>
       </div>
 

@@ -1,0 +1,58 @@
+.license-page {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 0 32px;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+}
+
+.license-page a, .license-page button { transition: color 150ms, background-color 150ms, border-color 150ms; }
+.license-page a:focus-visible, .license-page button:focus-visible { outline: 2px solid #93c5fd; outline-offset: 5px; border-radius: 6px; }
+.license-topbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; padding: 28px 0; border-bottom: 1px solid #ffffff0d; }
+.license-home { display: inline-flex; align-items: center; gap: 10px; font-weight: 650; color: #e2e8f0; }
+.license-home:hover, .license-footer a:hover { color: #93c5fd; }
+.license-home-label { color: #94a3b8; font-size: 12px; font-weight: 400; margin-left: 4px; }
+.license-languages { display: flex; flex-wrap: wrap; gap: 4px; }
+.license-languages button { padding: 7px 11px; border-radius: 8px; font-size: 12px; font-weight: 550; color: #94a3b8; cursor: pointer; border: 1px solid transparent; }
+.license-languages button:hover { color: #e2e8f0; background: #ffffff08; }
+.license-languages button[aria-pressed="true"] { color: #bfdbfe; background: #3b82f618; border-color: #3b82f63d; }
+.license-hero { padding: 68px 0 48px; }
+.license-eyebrow { font-family: monospace; letter-spacing: .16em; font-size: 11px; color: #94a3b8; margin-bottom: 14px; }
+.license-hero h1 { font-size: clamp(38px, 6vw, 56px); line-height: 1.2; letter-spacing: -.04em; font-weight: 750; color: #f8fafc; }
+.license-description { color: #94a3b8; margin-top: 18px; font-size: 17px; }
+.license-page h2 { color: #f1f5f9; font-size: 21px; font-weight: 650; letter-spacing: -.025em; line-height: 1.5; }
+.license-introduction { padding-bottom: 36px; }
+.license-introduction h2 { margin-bottom: 20px; }
+.license-introduction p { color: #cbd5e1; margin-top: 14px; }
+.license-free { background: #12141c; border: 1px solid #ffffff0d; border-radius: 16px; padding: 26px 30px; }
+.license-section-heading { display: flex; gap: 12px; align-items: center; }
+.license-mit-badge { font-family: monospace; font-size: 11px; line-height: 1.7; letter-spacing: .05em; padding: 3px 9px; color: #bfdbfe; background: #3b82f618; border-radius: 6px; }
+.license-free p { margin: 14px 0; color: #cbd5e1; font-size: 14px; }
+.license-free a { display: inline-flex; gap: 6px; align-items: center; color: #93c5fd; font-size: 13px; }
+.license-free a:hover { color: #dbeafe; }
+.license-paid { margin-top: 48px; }
+.license-paid-description { color: #94a3b8; font-size: 14px; margin-top: 10px; }
+.license-rules { margin-top: 26px; padding: 26px 30px; border: 1px solid #ffffff0d; border-radius: 16px; background: #12141c66; }
+.license-rules h3 { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 650; }
+.license-allowed h3, .license-allowed li > svg { color: #6ee7b7; }
+.license-prohibited h3, .license-prohibited li > svg { color: #fda4af; }
+.license-rules ul { margin-top: 16px; list-style: none; padding: 0; }
+.license-rules li { display: flex; gap: 13px; align-items: flex-start; padding: 12px 0; border-top: 1px solid #ffffff08; color: #e2e8f0; font-size: 14px; }
+.license-rules li:first-child { border-top: 0; }
+.license-rules li > svg { flex-shrink: 0; margin-top: 5px; }
+.license-rules .license-rule-detail { font-size: 13px; color: #94a3b8; margin-top: 5px; }
+.license-exceptions { color: #94a3b8; font-size: 13px; margin: 20px 0 0; padding: 0 2px; }
+.license-footer { display: flex; justify-content: space-between; gap: 16px; color: #94a3b8; font-size: 12px; border-top: 1px solid #ffffff0d; padding: 28px 0; margin-top: 64px; }
+
+@media (max-width: 600px) {
+  .license-page { padding: 0 22px; }
+  .license-topbar { gap: 16px; padding: 22px 0; }
+  .license-languages { width: 100%; gap: 3px; }
+  .license-languages button { padding: 7px 9px; }
+  .license-hero { padding: 42px 0 32px; }
+  .license-description { font-size: 15px; }
+  .license-introduction p { font-size: 14px; }
+  .license-free, .license-rules { padding: 22px 20px; }
+  .license-paid { margin-top: 36px; }
+  .license-footer { margin-top: 42px; }
+}
