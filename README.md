@@ -101,6 +101,7 @@ pnpm build
 
 - 저장소는 GitHub Pages 배포를 염두에 두고 구성되어 있습니다.
 - `public/CNAME`과 루트 `CNAME` 파일이 포함되어 있어 커스텀 도메인 연결을 유지할 수 있습니다.
+- `index.html`과 `license/index.html`에 Google Analytics(`G-SYEWNRRSVM`, guide·tools·vrcti와 같은 속성) 태그가 있습니다.
 - 라우팅은 정적 호스팅 환경을 고려해 `HashRouter`를 사용합니다.
 - 라이선스 페이지는 Vite의 별도 HTML 진입점으로 빌드되어 `/license/`로 직접 접근하고 새로고침할 수 있습니다. `?lang=ko`, `en`, `ja`, `zh-Hans`, `zh-Hant`로 언어를 지정할 수 있으며, 미지정 시 브라우저 언어를 따릅니다.
 - 장기적으로는 README뿐 아니라 실제 사이트 첫 화면도 "대표 프로젝트 3개 + 외부 링크 허브" 중심으로 더 선명하게 정리하면 좋습니다.
