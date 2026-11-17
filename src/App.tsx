@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import type { KeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ExternalLink,
@@ -9,19 +10,19 @@ import {
   Table2,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { Routes, Route, useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
+import { Routes, Route, Link, Navigate, useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 
 // --- Types ---
 interface PostMetadata {
   title: string;
   date: string;
-  category: 'project' | 'photo';
+  category: string;
   tags?: string[];
   description?: string;
   link?: string;
   thumbnail?: string;
   image?: string;
-  draft?: string | boolean;
+  draft?: string;
 }
 
 interface Post extends PostMetadata {
@@ -37,7 +38,9 @@ const translations = {
     viewDetail: "상세 보기",
     footer: "© 2026 nupamo. Built with React & Pamomo. ✨",
     back: "뒤로 가기",
-    license: "라이선스"
+    license: "라이선스",
+    notFound: "글을 찾을 수 없습니다.",
+    close: "닫기"
   },
   en: {
     description: "Organizing personal records and projects related to VRChat. ✨",
@@ -45,7 +48,9 @@ const translations = {
     viewDetail: "View Detail",
     footer: "© 2026 nupamo. Built with React & Pamomo. ✨",
     back: "Back",
-    license: "License"
+    license: "License",
+    notFound: "Post not found.",
+    close: "Close"
   },
   jp: {
     description: "VRChatに関連する個人の記録とプロジェクトを整理しています。 ✨",
@@ -53,7 +58,9 @@ const translations = {
     viewDetail: "詳細を見る",
     footer: "© 2026 nupamo. Built with React & Pamomo. ✨",
     back: "戻る",
-    license: "ライセンス"
+    license: "ライセンス",
+    notFound: "記事が見つかりません。",
+    close: "閉じる"
   },
   zh: {
     description: "整理与 VRChat 相关的个人记录和项目。 ✨",
@@ -61,11 +68,17 @@ const translations = {
     viewDetail: "查看详情",
     footer: "© 2026 nupamo. Built with React & Pamomo. ✨",
     back: "返回",
-    license: "许可协议"
+    license: "许可协议",
+    notFound: "找不到该文章。",
+    close: "关闭"
   }
 };
 
 type Language = keyof typeof translations;
+type Translation = (typeof translations)[Language];
+
+// <html lang>에 넣을 BCP 47 코드
+const htmlLang: Record<Language, string> = { ko: 'ko', en: 'en', jp: 'ja', zh: 'zh' };
 
 // --- Utils ---
 const parseMarkdown = (filename: string, raw: string): Post & { baseId: string; postLang: string } => {
@@ -83,13 +96,13 @@ const parseMarkdown = (filename: string, raw: string): Post & { baseId: string; 
   const frontmatter = match[1];
   const content = match[2].trim();
 
-  const metadata: any = {};
+  const metadata: Record<string, string | string[]> = {};
   frontmatter.split('\n').forEach(line => {
     const [key, ...values] = line.split(':');
     if (key && values.length > 0) {
       const val = values.join(':').trim().replace(/^(['"])(.*)\1$/, '$2');
       if (key.trim() === 'tags') {
-        metadata[key.trim()] = val.replace(/[\[\]]/g, '').split(',').map(t => t.trim());
+        metadata[key.trim()] = val.replace(/[[\]]/g, '').split(',').map(t => t.trim());
       } else {
         metadata[key.trim()] = val;
       }
@@ -97,10 +110,13 @@ const parseMarkdown = (filename: string, raw: string): Post & { baseId: string; 
   });
 
   return {
+    title: baseId,
+    date: '',
+    category: 'project',
+    ...(metadata as Partial<PostMetadata>),
     id: baseId,
     baseId,
     postLang,
-    ...metadata,
     content
   };
 };
@@ -112,21 +128,45 @@ const contentModules = import.meta.glob<string>('./content/*.md', {
 });
 const contentLoadTime = Date.now();
 
+// --- Hooks ---
+
+// 라이트박스가 열려 있는 동안 페이지 스크롤을 잠그고 Esc로 닫는다.
+// body에는 `overflow-y: scroll !important`가 걸려 있어 인라인 스타일이 먹지 않으므로 html을 잠근다.
+function useLightbox(open: boolean, onClose: () => void) {
+  useEffect(() => {
+    if (!open) return;
+    const root = document.documentElement;
+    const previous = root.style.overflow;
+    root.style.overflow = 'hidden';
+    const onKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      root.style.overflow = previous;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open, onClose]);
+}
+
+// 클릭 가능한 비-버튼 요소를 키보드(Enter/Space)로도 실행할 수 있게 한다.
+const activateOnKey = (action: () => void) => (e: KeyboardEvent) => {
+  if (e.target !== e.currentTarget) return;
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    action();
+  }
+};
+
 // --- Components ---
 
-function HomePage({ posts, t }: { posts: Post[], t: any }) {
+function HomePage({ posts, t }: { posts: Post[], t: Translation }) {
   const [activeTab, setActiveTab] = useState<'all' | 'project' | 'photo'>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [selectedPhoto, setSelectedPhoto] = useState<Post | null>(null);
 
-  useEffect(() => {
-    if (selectedPhoto) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => { document.body.style.overflow = 'unset'; };
-  }, [selectedPhoto]);
+  const closePhoto = useCallback(() => setSelectedPhoto(null), []);
+  useLightbox(selectedPhoto !== null, closePhoto);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const searchQuery = searchParams.get('search') || '';
@@ -134,9 +174,9 @@ function HomePage({ posts, t }: { posts: Post[], t: any }) {
 
   const handleSearchChange = (val: string) => {
     if (val) {
-      setSearchParams({ search: val });
+      setSearchParams({ search: val }, { replace: true });
     } else {
-      setSearchParams({});
+      setSearchParams({}, { replace: true });
     }
   };
 
@@ -241,6 +281,8 @@ function HomePage({ posts, t }: { posts: Post[], t: any }) {
               {(['all', 'project', 'photo'] as const).map(tab => (
                 <button
                   key={tab}
+                  type="button"
+                  aria-pressed={activeTab === tab}
                   onClick={() => setActiveTab(tab)}
                   className={`flex-1 sm:flex-none px-6 cursor-pointer py-2 rounded-xl text-sm font-black transition-all capitalize ${activeTab === tab ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-slate-500 hover:text-slate-300'
                     }`}
@@ -254,7 +296,8 @@ function HomePage({ posts, t }: { posts: Post[], t: any }) {
           <div className="relative w-full md:w-64">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
             <input
-              type="text"
+              type="search"
+              aria-label={t.search}
               placeholder={t.search}
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
@@ -279,16 +322,19 @@ function HomePage({ posts, t }: { posts: Post[], t: any }) {
                     stiffness: 300,
                     damping: 30
                   }}
+                  role={post.category === 'photo' ? 'button' : 'link'}
+                  tabIndex={0}
                   onClick={() => handlePostClick(post)}
-                  className="group glass rounded-3xl overflow-hidden cursor-pointer hover:border-primary/30 transition-colors flex flex-col h-full"
+                  onKeyDown={activateOnKey(() => handlePostClick(post))}
+                  className="group glass rounded-3xl overflow-hidden cursor-pointer hover:border-primary/30 focus-visible:outline-2 focus-visible:outline-primary transition-colors flex flex-col h-full"
                 >
                   {post.category === 'photo' && post.image ? (
                     <div className="aspect-[4/3] overflow-hidden">
-                      <img src={post.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={post.title} />
+                      <img src={post.image} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={post.title} />
                     </div>
                   ) : post.thumbnail ? (
                     <div className="aspect-video overflow-hidden">
-                      <img src={post.thumbnail} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={post.title} />
+                      <img src={post.thumbnail} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={post.title} />
                     </div>
                   ) : null}
 
@@ -303,7 +349,9 @@ function HomePage({ posts, t }: { posts: Post[], t: any }) {
                     </div>
 
                     <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-1">{post.title}</h3>
-                    <p className="text-slate-500 text-sm leading-relaxed mb-6 line-clamp-2">{post.description}</p>
+                    {post.description && (
+                      <p className="text-slate-500 text-sm leading-relaxed mb-6 line-clamp-2">{post.description}</p>
+                    )}
 
                     <div className="mt-auto flex flex-wrap gap-2">
                       {post.tags?.slice(0, 3).map(tag => (
@@ -337,8 +385,10 @@ function HomePage({ posts, t }: { posts: Post[], t: any }) {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
+                        tabIndex={0}
                         onClick={() => handlePostClick(post)}
-                        className="group cursor-pointer transition-colors hover:bg-white/[0.04]"
+                        onKeyDown={activateOnKey(() => handlePostClick(post))}
+                        className="group cursor-pointer transition-colors hover:bg-white/[0.04] focus-visible:bg-white/[0.06] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary"
                       >
                         <td className="px-4 py-3 text-xs text-slate-500 font-mono whitespace-nowrap">{post.date}</td>
                         <td className="px-4 py-3">
@@ -347,6 +397,8 @@ function HomePage({ posts, t }: { posts: Post[], t: any }) {
                               <img
                                 src={post.image || post.thumbnail}
                                 alt=""
+                                loading="lazy"
+                                decoding="async"
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                               />
                             )}
@@ -390,7 +442,10 @@ function HomePage({ posts, t }: { posts: Post[], t: any }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setSelectedPhoto(null)}
+            onClick={closePhoto}
+            role="dialog"
+            aria-modal="true"
+            aria-label={selectedPhoto.title}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
           >
             <motion.div
@@ -401,7 +456,10 @@ function HomePage({ posts, t }: { posts: Post[], t: any }) {
               className="relative max-w-6xl w-full flex flex-col items-center justify-center"
             >
               <button
-                onClick={() => setSelectedPhoto(null)}
+                type="button"
+                autoFocus
+                aria-label={t.close}
+                onClick={closePhoto}
                 className="absolute -top-12 md:-top-16 right-0 text-white/50 hover:text-white p-2 transition-colors z-50 cursor-pointer"
               >
                 <X size={32} />
@@ -438,7 +496,7 @@ function HomePage({ posts, t }: { posts: Post[], t: any }) {
   );
 }
 
-function PostDetailPage({ posts, t }: { posts: Post[], t: any }) {
+function PostDetailPage({ posts, t }: { posts: Post[], t: Translation }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const post = posts.find(p => p.id === id);
@@ -448,16 +506,25 @@ function PostDetailPage({ posts, t }: { posts: Post[], t: any }) {
     window.scrollTo(0, 0);
   }, []);
 
-  useEffect(() => {
-    if (selectedImage) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => { document.body.style.overflow = 'unset'; };
-  }, [selectedImage]);
+  const closeImage = useCallback(() => setSelectedImage(null), []);
+  useLightbox(selectedImage !== null, closeImage);
 
-  if (!post) return null;
+  if (!post) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="min-h-screen flex flex-col items-center justify-center gap-6 px-6 text-center"
+      >
+        <p className="text-slate-400">{t.notFound}</p>
+        <Link to="/" className="inline-flex items-center gap-2 text-slate-300 hover:text-white transition-colors">
+          <ArrowLeft size={18} />
+          <span className="font-medium text-sm">{t.back}</span>
+        </Link>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -518,9 +585,12 @@ function PostDetailPage({ posts, t }: { posts: Post[], t: any }) {
           prose-img:rounded-xl prose-img:shadow-lg">
           <ReactMarkdown
             components={{
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars -- node는 DOM에 넘기지 않으려고 걸러낸다
               img: ({ node, ...props }) => (
-                <img 
-                  {...props} 
+                <img
+                  {...props}
+                  alt={props.alt ?? ''}
+                  loading="lazy"
                   onClick={() => setSelectedImage(props.src || null)}
                   className="rounded-xl shadow-lg cursor-pointer hover:opacity-90 transition-opacity m-0"
                 />
@@ -570,7 +640,10 @@ function PostDetailPage({ posts, t }: { posts: Post[], t: any }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setSelectedImage(null)}
+            onClick={closeImage}
+            role="dialog"
+            aria-modal="true"
+            aria-label={post.title}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md cursor-pointer"
           >
             <motion.div
@@ -582,14 +655,17 @@ function PostDetailPage({ posts, t }: { posts: Post[], t: any }) {
             >
               <div className="relative inline-block max-w-[95vw] sm:max-w-6xl">
                 <button
-                  onClick={() => setSelectedImage(null)}
+                  type="button"
+                  autoFocus
+                  aria-label={t.close}
+                  onClick={closeImage}
                   className="absolute -right-4 -top-4 md:-right-6 md:-top-6 text-white/80 bg-black/60 hover:bg-black/90 p-2 rounded-full transition-colors z-50 cursor-pointer backdrop-blur-sm"
                 >
                   <X size={24} />
                 </button>
                 <img
                   src={selectedImage}
-                  alt="Expanded view"
+                  alt={post.title}
                   className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
                 />
               </div>
@@ -614,6 +690,10 @@ export default function App() {
 
   const t = translations[lang];
 
+  useEffect(() => {
+    document.documentElement.lang = htmlLang[lang];
+  }, [lang]);
+
   const posts = useMemo(() => {
     const postDict: Record<string, Record<string, Post>> = {};
 
@@ -621,7 +701,7 @@ export default function App() {
       const post = parseMarkdown(path, rawContent);
 
       // Skip drafts
-      if (post.draft === 'true' || post.draft === true) return;
+      if (post.draft === 'true') return;
 
       // Skip future dates
       const postDate = new Date(post.date).getTime();
@@ -644,6 +724,7 @@ export default function App() {
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<HomePage posts={posts} t={t} />} />
           <Route path="/post/:id" element={<PostDetailPage posts={posts} t={t} />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AnimatePresence>
     </div>
