@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react-swc'
+import react from '@vitejs/plugin-react'
 import path from 'path'
 
 export default defineConfig({
@@ -7,14 +7,14 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        home: path.resolve(__dirname, 'index.html'),
-        license: path.resolve(__dirname, 'license/index.html'),
+        home: path.resolve(import.meta.dirname, 'index.html'),
+        license: path.resolve(import.meta.dirname, 'license/index.html'),
       },
     },
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
   },
 })

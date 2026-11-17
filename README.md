@@ -97,9 +97,17 @@ pnpm build
 
 빌드 결과물은 `dist/`에 생성됩니다.
 
+## 린트
+
+```bash
+pnpm lint
+```
+
+PR을 올리면 GitHub Actions(`.github/workflows/ci.yml`)에서 린트와 빌드를 자동으로 확인합니다.
+
 ## 배포 메모
 
-- 저장소는 GitHub Pages 배포를 염두에 두고 구성되어 있습니다.
+- `main`에 푸시하면 GitHub Actions(`.github/workflows/deploy.yml`)가 빌드해서 GitHub Pages에 배포합니다.
 - `public/CNAME`과 루트 `CNAME` 파일이 포함되어 있어 커스텀 도메인 연결을 유지할 수 있습니다.
 - `index.html`과 `license/index.html`에 Google Analytics(`G-SYEWNRRSVM`, guide·tools·vrcti와 같은 속성) 태그가 있습니다.
 - 라우팅은 정적 호스팅 환경을 고려해 `HashRouter`를 사용합니다.

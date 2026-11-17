@@ -1,7 +1,7 @@
 ---
 title: "VRCTI 统计数据"
 date: "2026-04-09"
-category: "project"
+category: "Article"
 tags: [Article]
 thumbnail: "/vrcti-1.png"
 ---
